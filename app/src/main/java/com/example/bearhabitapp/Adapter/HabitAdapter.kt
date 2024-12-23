@@ -1,6 +1,7 @@
 package com.example.bearhabitapp.Adapter
 
 import android.graphics.Color
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -13,6 +14,7 @@ import com.example.bearhabitapp.Model.Habit
 import com.example.bearhabitapp.R
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.QuerySnapshot
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -95,8 +97,19 @@ class HabitAdapter(
                         Toast.LENGTH_SHORT
                     ).show()
 
+                    // Jika habit adalah kompetitif, tambahkan juga ke dokumen teman
+                    if (habit.competitive && !habit.friendEmail.isNullOrEmpty()) {
+                        updateFriendHabitCompletion(
+                            habit.friendEmail,
+                            habit.habitName,
+                            habitId
+                        )
+                    }
+
                     // Hapus habit dari daftar jika pengguna saat ini telah menyelesaikannya
-                    if (habit.completedDates[currentDate]?.contains(currentUserId) == true) {
+                    if (habit.completedDates[currentDate]?.contains(currentUserId) == true &&
+                        !habit.competitive // Hanya hapus jika non kompetitif
+                    ) {
                         habits.removeAt(position)
                         notifyItemRemoved(position)
                         notifyItemRangeChanged(position, habits.size)
@@ -116,5 +129,73 @@ class HabitAdapter(
         }
     }
 
-    // Tidak perlu implementasi filterCompletedHabits karena filtering dilakukan saat memuat data di HomePageActivity
+    /**
+     * Fungsi untuk memperbarui dokumen habit teman saat user menyelesaikan habit kompetitif.
+     *
+     * @param friendEmail Email teman yang terkait dengan habit kompetitif.
+     * @param habitName Nama habit yang diselesaikan.
+     * @param userHabitId ID dokumen habit user saat ini.
+     */
+    private fun updateFriendHabitCompletion(friendEmail: String, habitName: String, userHabitId: String) {
+        // Cari dokumen teman berdasarkan email dan nama habit
+        firestore.collection("users")
+            .whereEqualTo("email", friendEmail)
+            .get()
+            .addOnSuccessListener { userSnapshot ->
+                if (!userSnapshot.isEmpty) {
+                    val friendDoc = userSnapshot.documents[0]
+                    val friendUserId = friendDoc.id
+
+                    // Cari dokumen habit teman berdasarkan userId dan nama habit
+                    firestore.collection("habits")
+                        .whereEqualTo("userId", friendUserId)
+                        .whereEqualTo("habitName", habitName)
+                        .whereEqualTo("competitive", true)
+                        .get()
+                        .addOnSuccessListener { habitSnapshot ->
+                            if (!habitSnapshot.isEmpty) {
+                                val friendHabitDoc = habitSnapshot.documents[0]
+                                val friendHabitId = friendHabitDoc.id
+
+                                // Update completedDates di dokumen teman
+                                val friendUpdates = hashMapOf<String, Any>(
+                                    "completedDates.$currentDate" to FieldValue.arrayUnion(currentUserId)
+                                )
+
+                                firestore.collection("habits")
+                                    .document(friendHabitId)
+                                    .update(friendUpdates)
+                                    .addOnSuccessListener {
+                                        Log.d(
+                                            "HabitAdapter",
+                                            "Successfully updated friend's habit completion."
+                                        )
+                                    }
+                                    .addOnFailureListener { e ->
+                                        Log.e(
+                                            "HabitAdapter",
+                                            "Failed to update friend's habit: ${e.message}"
+                                        )
+                                    }
+                            } else {
+                                Log.e(
+                                    "HabitAdapter",
+                                    "Friend's habit not found for habitName: $habitName"
+                                )
+                            }
+                        }
+                        .addOnFailureListener { e ->
+                            Log.e(
+                                "HabitAdapter",
+                                "Error fetching friend's habits: ${e.message}"
+                            )
+                        }
+                } else {
+                    Log.e("HabitAdapter", "Friend with email $friendEmail not found.")
+                }
+            }
+            .addOnFailureListener { e ->
+                Log.e("HabitAdapter", "Error fetching friend by email: ${e.message}")
+            }
+    }
 }
