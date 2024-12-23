@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+    <color name="primaryLight">#64B5F6</color> <!-- Light Blue -->
+    <color name="primaryDark">#1976D2</color> <!-- Dark Blue -->
+    <color name="secondaryLight">#FFB74D</color> <!-- Light Orange -->
+
+    <color name="highlight_color">#6750A4</color> <!-- Warna untuk highlight -->
+    <color name="default_color">#000000</color> <!-- Warna default -->
+    <color name="backgroundDefault">#FFFEEB</color>
+
+</resources>
