@@ -2,6 +2,7 @@ package com.example.bearhabitapp
 
 import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import android.view.View
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
@@ -212,8 +213,13 @@ class AddHabitActivity : AppCompatActivity() {
         firestore.collection("habits")
             .add(habit)
             .addOnSuccessListener { documentRef ->
+                // Create group chat if habit is collaborative or competitive
+                if ((collaborative || competitive) && friendEmail != null) {
+                    createGroupChat(documentRef.id, habitName, userEmail, friendEmail)
+                }
+
                 if (competitive && friendEmail != null) {
-                    // Membuat habit untuk friend
+                    // Existing competitive habit logic
                     firestore.collection("users")
                         .whereEqualTo("email", friendEmail)
                         .get()
@@ -230,7 +236,7 @@ class AddHabitActivity : AppCompatActivity() {
                                     repeatCount = repeatCount,
                                     timestamp = System.currentTimeMillis(),
                                     days = days,
-                                    friendEmail = userEmail, // Menghubungkan kembali ke user A
+                                    friendEmail = userEmail,
                                     collaborative = false,
                                     competitive = true
                                 )
@@ -244,7 +250,7 @@ class AddHabitActivity : AppCompatActivity() {
                                         val intent = Intent(this, HomePageActivity::class.java)
                                         intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
                                         startActivity(intent)
-                                        finish() // Close AddHabitActivity
+                                        finish()
                                     }
                                     .addOnFailureListener { exception ->
                                         Toast.makeText(this, "Failed to add friend's habit: ${exception.message}", Toast.LENGTH_SHORT).show()
@@ -257,14 +263,14 @@ class AddHabitActivity : AppCompatActivity() {
                             Toast.makeText(this, "Error fetching friend userId: ${e.message}", Toast.LENGTH_SHORT).show()
                         }
                 } else {
-                    // Habit Non-Kolaboratif dan Non-Kompetitif
+                    // Non-competitive habit
                     Toast.makeText(this, "Habit added successfully", Toast.LENGTH_SHORT).show()
 
                     // Navigate to HomePageActivity
                     val intent = Intent(this, HomePageActivity::class.java)
                     intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
                     startActivity(intent)
-                    finish() // Close AddHabitActivity
+                    finish()
                 }
             }
             .addOnFailureListener { exception ->
@@ -306,5 +312,23 @@ class AddHabitActivity : AppCompatActivity() {
         friendUserEmail: String
     ) {
         // Tidak digunakan karena sudah di-handle dalam saveHabitToFirestore()
+    }
+
+    private fun createGroupChat(habitId: String, habitName: String, userEmail: String, friendEmail: String) {
+        val groupChat = hashMapOf(
+            "habitId" to habitId,
+            "habitName" to habitName,
+            "members" to listOf(userEmail, friendEmail)
+        )
+
+        firestore.collection("group_chats")
+            .document(habitId)  // Using habitId as the document ID for easy reference
+            .set(groupChat)
+            .addOnSuccessListener {
+                Log.d("AddHabitActivity", "Group chat created successfully")
+            }
+            .addOnFailureListener { e ->
+                Log.e("AddHabitActivity", "Error creating group chat", e)
+            }
     }
 }
