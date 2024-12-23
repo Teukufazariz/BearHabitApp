@@ -134,32 +134,83 @@ class HomePageActivity : AppCompatActivity() {
             Toast.makeText(this, "Please login to view your habits.", Toast.LENGTH_SHORT).show()
             return
         }
-
+        // Clear existing habits
+        habitList.clear()
+        // First, load habits where user is the creator
         firestore.collection("habits")
             .whereEqualTo("userId", userId)
             .orderBy("timestamp", Query.Direction.DESCENDING)
             .get()
-            .addOnSuccessListener { documents ->
-                val newHabitList = mutableListOf<Habit>()
-                for (document in documents) {
+            .addOnSuccessListener { userHabits ->
+                for (document in userHabits) {
                     val habit = document.toObject(Habit::class.java).apply {
                         id = document.id
                     }
-
                     // Only add habits for the selected day that haven't been completed
-                    val isCompletedByUser = habit.completedDates[selectedDate]?.contains(userId) == true
+                    val isCompletedByUser =
+                        habit.completedDates[selectedDate]?.contains(userId) == true
                     if ((selectedDay.isEmpty() || habit.days.contains(selectedDay)) && !isCompletedByUser) {
-                        newHabitList.add(habit)
+                        habitList.add(habit)
                     }
                 }
-
-                // Update the adapter with the new list
-                habitList.clear()
-                habitList.addAll(newHabitList)
-                habitAdapter.notifyDataSetChanged()
+                // Then, load collaborative habits where user is a participant
+                firestore.collection("habits")
+                    .whereEqualTo("friendEmail", userEmail)
+                    .whereEqualTo("collaborative", true)
+                    .orderBy("timestamp", Query.Direction.DESCENDING)
+                    .get()
+                    .addOnSuccessListener { collaborativeHabits ->
+                        for (document in collaborativeHabits) {
+                            val habit = document.toObject(Habit::class.java).apply {
+                                id = document.id
+                            }
+                            // Only add habits for the selected day that haven't been completed
+                            val isCompletedByUser =
+                                habit.completedDates[selectedDate]?.contains(userId) == true
+                            if ((selectedDay.isEmpty() || habit.days.contains(selectedDay)) && !isCompletedByUser) {
+                                habitList.add(habit)
+                            }
+                        }
+                        // Finally, load competitive habits where user is a participant
+                        firestore.collection("habits")
+                            .whereEqualTo("friendEmail", userEmail)
+                            .whereEqualTo("competitive", true)
+                            .orderBy("timestamp", Query.Direction.DESCENDING)
+                            .get()
+                            .addOnSuccessListener { competitiveHabits ->
+                                for (document in competitiveHabits) {
+                                    val habit = document.toObject(Habit::class.java).apply {
+                                        id = document.id
+                                    }
+                                    // Only add habits for the selected day that haven't been completed
+                                    val isCompletedByUser =
+                                        habit.completedDates[selectedDate]?.contains(userId) == true
+                                    if ((selectedDay.isEmpty() || habit.days.contains(selectedDay)) && !isCompletedByUser) {
+                                        habitList.add(habit)
+                                    }
+                                }
+                                // Update the adapter with all habits
+                                habitAdapter.notifyDataSetChanged()
+                            }
+                            .addOnFailureListener { e ->
+                                Toast.makeText(
+                                    this,
+                                    "Failed to load competitive habits: ${e.message}",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            }
+                    }
+                    .addOnFailureListener { e ->
+                        Toast.makeText(
+                            this,
+                            "Failed to load collaborative habits: ${e.message}",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
             }
             .addOnFailureListener { e ->
-                Toast.makeText(this, "Failed to load habits: ${e.message}", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "Failed to load habits: ${e.message}", Toast.LENGTH_SHORT)
+                    .show()
             }
     }
 

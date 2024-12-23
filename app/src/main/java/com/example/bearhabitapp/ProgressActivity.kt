@@ -1,5 +1,6 @@
 package com.example.bearhabitapp
 
+import android.app.AlertDialog
 import android.os.Bundle
 import android.widget.ImageView
 import android.widget.Toast
@@ -15,6 +16,7 @@ import java.text.SimpleDateFormat
 import java.util.*
 
 class ProgressActivity : AppCompatActivity() {
+
     private lateinit var recyclerView: RecyclerView
     private lateinit var progressAdapter: HabitProgressAdapter
     private lateinit var firestore: FirebaseFirestore
@@ -29,7 +31,9 @@ class ProgressActivity : AppCompatActivity() {
         // Setup RecyclerView
         recyclerView = findViewById(R.id.rvHabitProgress)
         recyclerView.layoutManager = LinearLayoutManager(this)
-        progressAdapter = HabitProgressAdapter()
+        progressAdapter = HabitProgressAdapter { habitProgress ->
+            showDeleteConfirmationDialog(habitProgress)
+        }
         recyclerView.adapter = progressAdapter
 
         // Setup back button
@@ -39,6 +43,48 @@ class ProgressActivity : AppCompatActivity() {
         }
 
         loadWeeklyProgress()
+    }
+
+    private fun showDeleteConfirmationDialog(habitProgress: HabitProgress) {
+        AlertDialog.Builder(this)
+            .setTitle("Hapus Habit")
+            .setMessage("Apakah Anda yakin ingin menghapus habit '${habitProgress.habitName}' secara permanen?")
+            .setPositiveButton("Ya") { dialog, _ ->
+                deleteHabit(habitProgress.habitId)
+                dialog.dismiss()
+            }
+            .setNegativeButton("Tidak") { dialog, _ ->
+                dialog.dismiss()
+            }
+            .create()
+            .show()
+    }
+
+    private fun deleteHabit(habitId: String) {
+        // Menghapus habit dari koleksi "habits"
+        firestore.collection("habits").document(habitId)
+            .delete()
+            .addOnSuccessListener {
+                // Menghapus group chat terkait dari koleksi "group_chats"
+                firestore.collection("group_chats").document(habitId)
+                    .delete()
+                    .addOnSuccessListener {
+                        Toast.makeText(this, "Habit dan group chat terkait berhasil dihapus", Toast.LENGTH_SHORT).show()
+                        // Menghapus habit dari daftar adapter
+                        val currentList = progressAdapter.currentList.toMutableList()
+                        val habitToRemove = currentList.find { it.habitId == habitId }
+                        if (habitToRemove != null) {
+                            currentList.remove(habitToRemove)
+                            progressAdapter.submitList(currentList)
+                        }
+                    }
+                    .addOnFailureListener { e ->
+                        Toast.makeText(this, "Habit berhasil dihapus, tetapi gagal menghapus group chat: ${e.message}", Toast.LENGTH_SHORT).show()
+                    }
+            }
+            .addOnFailureListener { e ->
+                Toast.makeText(this, "Gagal menghapus habit: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
     }
 
     private fun loadWeeklyProgress() {
@@ -243,6 +289,7 @@ class ProgressActivity : AppCompatActivity() {
         if (userProgressKey !in uniqueProgressSet) {
             habitProgressList.add(
                 HabitProgress(
+                    habitId = habit.id!!, // Menambahkan habitId
                     habitName = habit.habitName,
                     userEmail = currentUserEmail ?: "N/A",
                     progress = userProgress.second,
@@ -262,6 +309,7 @@ class ProgressActivity : AppCompatActivity() {
                 if (friendProgressKey !in uniqueProgressSet) {
                     habitProgressList.add(
                         HabitProgress(
+                            habitId = habit.id!!, // Menambahkan habitId
                             habitName = habit.habitName,
                             userEmail = friendUserEmail,
                             progress = friendProgress.second,
@@ -299,6 +347,7 @@ class ProgressActivity : AppCompatActivity() {
                     if (friendProgressKey !in uniqueProgressSet) {
                         habitProgressList.add(
                             HabitProgress(
+                                habitId = habit.id!!, // Menambahkan habitId
                                 habitName = habit.habitName,
                                 userEmail = friendUserEmail,
                                 progress = friendProgress.second,
@@ -346,6 +395,7 @@ class ProgressActivity : AppCompatActivity() {
             if (progressKey !in uniqueProgressSet) {
                 habitProgressList.add(
                     HabitProgress(
+                        habitId = habit.id!!, // Menambahkan habitId
                         habitName = habit.habitName,
                         userEmail = "All",
                         progress = progress,
@@ -368,6 +418,7 @@ class ProgressActivity : AppCompatActivity() {
             if (progressKey !in uniqueProgressSet) {
                 habitProgressList.add(
                     HabitProgress(
+                        habitId = habit.id!!, // Menambahkan habitId
                         habitName = habit.habitName,
                         userEmail = currentUserEmail ?: "N/A",
                         progress = userProgress.second,
@@ -413,8 +464,8 @@ class ProgressActivity : AppCompatActivity() {
         val totalTasksInWeek = habit.days.size * 1 // Each user has their own tasks
         var completedTasks = 0
 
-        habit.completedDates.forEach { (date, users) ->
-            if (isDateInCurrentWeek(date, weekStart, weekEnd)) {
+        habit.completedDates.forEach { (dateStr, users) ->
+            if (isDateInCurrentWeek(dateStr, weekStart, weekEnd)) {
                 if (users.contains(userId)) {
                     completedTasks += 1
                 }
