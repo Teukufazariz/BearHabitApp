@@ -18,6 +18,18 @@ class LoginActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Check login state
+        val sharedPreferences: SharedPreferences = getSharedPreferences("User Prefs", MODE_PRIVATE)
+        val isLoggedIn = sharedPreferences.getBoolean("isLoggedIn", false)
+
+        if (isLoggedIn) {
+            // Redirect to HomePageActivity if logged in
+            startActivity(Intent(this, HomePageActivity::class.java))
+            finish()
+            return
+        }
+
         setContentView(R.layout.activity_login)
 
         auth = FirebaseAuth.getInstance()
@@ -62,6 +74,7 @@ class LoginActivity : AppCompatActivity() {
 
                     val sharedPreferences: SharedPreferences = getSharedPreferences("User Prefs", MODE_PRIVATE)
                     sharedPreferences.edit().putString("userId", userId).apply()
+                    sharedPreferences.edit().putBoolean("isLoggedIn", true).apply() // Store login state
 
                     startActivity(Intent(this, HomePageActivity::class.java))
                     finish()

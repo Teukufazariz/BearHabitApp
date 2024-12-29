@@ -1,5 +1,7 @@
 package com.example.bearhabitapp
 
+import android.content.Intent
+import android.content.SharedPreferences
 import android.os.Bundle
 import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
@@ -20,7 +22,19 @@ class MainActivity : AppCompatActivity() {
         db.collection("test").add(testDoc)
             .addOnSuccessListener { Log.d("FirebaseTest", "Document successfully written!") }
             .addOnFailureListener { e -> Log.w("FirebaseTest", "Error writing document", e) }
+
+        // Check login state
+        val sharedPreferences: SharedPreferences = getSharedPreferences("User Prefs", MODE_PRIVATE)
+        val isLoggedIn = sharedPreferences.getBoolean("isLoggedIn", false)
+
+        if (isLoggedIn) {
+            // Redirect to HomePageActivity if logged in
+            startActivity(Intent(this, HomePageActivity::class.java))
+            finish()
+        } else {
+            // Redirect to LoginActivity if not logged in
+            startActivity(Intent(this, LoginActivity::class.java))
+            finish()
+        }
     }
-
-
 }

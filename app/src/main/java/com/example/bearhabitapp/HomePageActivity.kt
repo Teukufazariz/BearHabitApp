@@ -10,6 +10,7 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.bumptech.glide.Glide
 import com.example.bearhabitapp.Adapter.HabitAdapter
 import com.example.bearhabitapp.Model.Habit
 import com.google.firebase.auth.FirebaseAuth
@@ -30,7 +31,7 @@ class HomePageActivity : AppCompatActivity() {
 
     // UI elements for date and profile
     private lateinit var dateTextView: TextView
-    private lateinit var profileIcon: View
+    private lateinit var profileIcon: ImageView
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -91,6 +92,7 @@ class HomePageActivity : AppCompatActivity() {
         profileIcon.setOnClickListener {
             startActivity(Intent(this, ProfileActivity::class.java))
         }
+        loadProfilePicture()
 
         // Set up the date text
         dateTextView = findViewById(R.id.tv_date)
@@ -289,5 +291,28 @@ class HomePageActivity : AppCompatActivity() {
         findViewById<TextView>(R.id.tv_all_habit).setTextColor(defaultTextColor)
         findViewById<TextView>(R.id.tv_today_habit).setTextColor(defaultTextColor)
         findViewById<TextView>(R.id.tv_progress).setTextColor(defaultTextColor) // Reset warna untuk progress
+    }
+
+    private fun loadProfilePicture() {
+        val userId = FirebaseAuth.getInstance().currentUser?.uid
+        if (userId == null) {
+            Toast.makeText(this, "User ID not found", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        firestore.collection("users") // Assuming the profile picture is stored under the "users" collection
+            .document(userId)
+            .get()
+            .addOnSuccessListener { document ->
+                val profilePicture = document.getString("profilePicture")
+                if (!profilePicture.isNullOrEmpty()) {
+                    Glide.with(this).load(profilePicture).into(profileIcon) // Assuming 'profileIcon' is the ImageView
+                } else {
+                    Toast.makeText(this, "Profile picture not found", Toast.LENGTH_SHORT).show()
+                }
+            }
+            .addOnFailureListener { e ->
+                Toast.makeText(this, "Failed to load profile picture: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
     }
 }
