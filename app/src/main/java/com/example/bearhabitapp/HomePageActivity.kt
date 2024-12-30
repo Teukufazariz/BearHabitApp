@@ -137,32 +137,57 @@ class HomePageActivity : AppCompatActivity() {
             return
         }
 
-        firestore.collection("habits")
+        // Query untuk habit milik user
+        val userHabitsQuery = firestore.collection("habits")
             .whereEqualTo("userId", userId)
             .orderBy("timestamp", Query.Direction.DESCENDING)
-            .get()
-            .addOnSuccessListener { documents ->
-                val newHabitList = mutableListOf<Habit>()
-                for (document in documents) {
+
+        // Query untuk habit kolaboratif dimana user adalah friend
+        val collaborativeFriendHabitsQuery = firestore.collection("habits")
+            .whereEqualTo("friendEmail", userEmail)
+            .whereEqualTo("collaborative", true)
+            .orderBy("timestamp", Query.Direction.DESCENDING)
+
+        // Eksekusi query untuk habit milik user
+        userHabitsQuery.get().addOnSuccessListener { userHabitsSnapshot ->
+            val newHabitList = mutableListOf<Habit>()
+
+            // Proses habit milik user
+            for (document in userHabitsSnapshot) {
+                val habit = document.toObject(Habit::class.java).apply {
+                    id = document.id
+                }
+
+                val isCompletedByUser = habit.completedDates[selectedDate]?.contains(userId) == true
+                if ((selectedDay.isEmpty() || habit.days.contains(selectedDay)) && !isCompletedByUser) {
+                    newHabitList.add(habit)
+                }
+            }
+
+            // Eksekusi query untuk habit kolaboratif dimana user adalah friend
+            collaborativeFriendHabitsQuery.get().addOnSuccessListener { friendHabitsSnapshot ->
+                // Proses habit kolaboratif dimana user adalah friend
+                for (document in friendHabitsSnapshot) {
                     val habit = document.toObject(Habit::class.java).apply {
                         id = document.id
                     }
 
-                    // Only add habits for the selected day that haven't been completed
                     val isCompletedByUser = habit.completedDates[selectedDate]?.contains(userId) == true
                     if ((selectedDay.isEmpty() || habit.days.contains(selectedDay)) && !isCompletedByUser) {
                         newHabitList.add(habit)
                     }
                 }
 
-                // Update the adapter with the new list
+                // Update adapter dengan semua habit
                 habitList.clear()
                 habitList.addAll(newHabitList)
                 habitAdapter.notifyDataSetChanged()
+            }.addOnFailureListener { e ->
+                Toast.makeText(this, "Failed to load collaborative habits: ${e.message}", Toast.LENGTH_SHORT).show()
             }
-            .addOnFailureListener { e ->
-                Toast.makeText(this, "Failed to load habits: ${e.message}", Toast.LENGTH_SHORT).show()
-            }
+        }.addOnFailureListener { e ->
+            Toast.makeText(this, "Failed to load habits: ${e.message}", Toast.LENGTH_SHORT).show()
+        }
     }
 
     private fun fetchFriendHabits(userId: String) {
