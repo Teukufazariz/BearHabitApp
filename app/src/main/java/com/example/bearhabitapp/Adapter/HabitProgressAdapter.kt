@@ -3,6 +3,7 @@ package com.example.bearhabitapp.Adapter
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ImageView
 import android.widget.ProgressBar
 import android.widget.TextView
 import androidx.recyclerview.widget.DiffUtil
@@ -11,8 +12,9 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.bearhabitapp.Model.HabitProgress
 import com.example.bearhabitapp.R
 
-class HabitProgressAdapter :
-    ListAdapter<HabitProgress, HabitProgressAdapter.ProgressViewHolder>(ProgressDiffCallback()) {
+class HabitProgressAdapter(
+    private val onDeleteClick: (HabitProgress) -> Unit
+) : ListAdapter<HabitProgress, HabitProgressAdapter.ProgressViewHolder>(ProgressDiffCallback()) {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ProgressViewHolder {
         val view = LayoutInflater.from(parent.context)
@@ -21,7 +23,11 @@ class HabitProgressAdapter :
     }
 
     override fun onBindViewHolder(holder: ProgressViewHolder, position: Int) {
-        holder.bind(getItem(position))
+        val habitProgress = getItem(position)
+        holder.bind(habitProgress)
+        holder.ivDelete.setOnClickListener {
+            onDeleteClick(habitProgress)
+        }
     }
 
     class ProgressViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
@@ -29,13 +35,13 @@ class HabitProgressAdapter :
         private val tvUserEmail: TextView = itemView.findViewById(R.id.tvUserEmail)
         private val progressBar: ProgressBar = itemView.findViewById(R.id.progressBar)
         private val tvProgress: TextView = itemView.findViewById(R.id.tvProgress)
+        val ivDelete: ImageView = itemView.findViewById(R.id.ivDelete) // Tambahkan reference ke tombol delete
 
         fun bind(habitProgress: HabitProgress) {
             tvHabitName.text = habitProgress.habitName
             tvUserEmail.text = habitProgress.userEmail
             progressBar.progress = habitProgress.progress.toInt()
-            tvProgress.text = "${habitProgress.progress.toInt()}% " +
-                    "(${habitProgress.completedTasks}/${habitProgress.totalTasks})"
+            tvProgress.text = "${habitProgress.progress.toInt()}% (${habitProgress.completedTasks}/${habitProgress.totalTasks})"
         }
     }
 

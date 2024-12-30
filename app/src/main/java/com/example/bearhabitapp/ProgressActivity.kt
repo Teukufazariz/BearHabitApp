@@ -4,6 +4,7 @@ import android.os.Bundle
 import android.util.Log
 import android.widget.ImageView
 import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -30,8 +31,11 @@ class ProgressActivity : AppCompatActivity() {
 
         // Setup RecyclerView
         recyclerView = findViewById(R.id.rvHabitProgress)
+        progressAdapter = HabitProgressAdapter { habitProgress ->
+            showDeleteConfirmationDialog(habitProgress)
+        }
         recyclerView.layoutManager = LinearLayoutManager(this)
-        progressAdapter = HabitProgressAdapter()
+        recyclerView.layoutManager = LinearLayoutManager(this)
         recyclerView.adapter = progressAdapter
 
         // Setup back button
@@ -41,6 +45,56 @@ class ProgressActivity : AppCompatActivity() {
         }
 
         loadWeeklyProgress()
+    }
+
+    private fun showDeleteConfirmationDialog(habitProgress: HabitProgress) {
+        AlertDialog.Builder(this)
+            .setTitle("Hapus Habit")
+            .setMessage("Apakah Anda yakin ingin menghapus habit ini?")
+            .setPositiveButton("Ya") { dialog, _ ->
+                deleteHabit(habitProgress)
+                dialog.dismiss()
+            }
+            .setNegativeButton("Tidak") { dialog, _ ->
+                dialog.dismiss()
+            }
+            .create()
+            .show()
+    }
+
+    private fun deleteHabit(habitProgress: HabitProgress) {
+        // Dapatkan userId dari FirebaseAuth
+        val userId = FirebaseAuth.getInstance().currentUser?.uid
+        if (userId == null) {
+            Toast.makeText(this, "User tidak terautentikasi", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        // Cari Habit berdasarkan habitName dan userId
+        firestore.collection("habits")
+            .whereEqualTo("habitName", habitProgress.habitName)
+            .whereEqualTo("userId", userId)
+            .get()
+            .addOnSuccessListener { querySnapshot ->
+                if (!querySnapshot.isEmpty) {
+                    // Asumsikan hanya satu document yang sesuai
+                    val habitDocument = querySnapshot.documents[0]
+                    habitDocument.reference.delete()
+                        .addOnSuccessListener {
+                            Toast.makeText(this, "Habit berhasil dihapus", Toast.LENGTH_SHORT).show()
+                            // Muat ulang data setelah penghapusan
+                            loadWeeklyProgress()
+                        }
+                        .addOnFailureListener { e ->
+                            Toast.makeText(this, "Gagal menghapus habit: ${e.message}", Toast.LENGTH_SHORT).show()
+                        }
+                } else {
+                    Toast.makeText(this, "Habit tidak ditemukan", Toast.LENGTH_SHORT).show()
+                }
+            }
+            .addOnFailureListener { e ->
+                Toast.makeText(this, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
     }
 
     private fun loadWeeklyProgress() {
