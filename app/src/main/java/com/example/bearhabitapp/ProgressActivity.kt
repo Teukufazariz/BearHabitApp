@@ -125,6 +125,7 @@ class ProgressActivity : AppCompatActivity() {
                             .addOnSuccessListener { friendHabits ->
                                 val combinedHabits = mutableListOf<Habit>()
                                 val habitIds = mutableSetOf<String>()
+                                val processedHabitNames = mutableSetOf<String>() // Untuk mengecek duplikasi nama habit
 
                                 // Add user's habits
                                 userHabits.forEach { document ->
@@ -132,8 +133,14 @@ class ProgressActivity : AppCompatActivity() {
                                         id = document.id
                                     }
                                     if (habit.id != null && habit.id !in habitIds) {
-                                        combinedHabits.add(habit)
-                                        habitIds.add(habit.id!!)
+                                        // Untuk habit competitive, hanya tambahkan jika belum ada habit dengan nama yang sama
+                                        if (!habit.competitive || habit.habitName !in processedHabitNames) {
+                                            combinedHabits.add(habit)
+                                            habitIds.add(habit.id!!)
+                                            if (habit.competitive) {
+                                                processedHabitNames.add(habit.habitName)
+                                            }
+                                        }
                                     }
                                 }
 
@@ -143,23 +150,30 @@ class ProgressActivity : AppCompatActivity() {
                                         id = document.id
                                     }
                                     if (habit.id != null && habit.id !in habitIds) {
-                                        combinedHabits.add(habit)
-                                        habitIds.add(habit.id!!)
+                                        // Untuk habit competitive, hanya tambahkan jika belum ada habit dengan nama yang sama
+                                        if (!habit.competitive || habit.habitName !in processedHabitNames) {
+                                            combinedHabits.add(habit)
+                                            habitIds.add(habit.id!!)
+                                            if (habit.competitive) {
+                                                processedHabitNames.add(habit.habitName)
+                                            }
+                                        }
                                     }
                                 }
 
+                                // Sisa kode sama seperti sebelumnya
                                 val habitProgressList = mutableListOf<HabitProgress>()
-                                val uniqueProgressSet = mutableSetOf<String>() // To track unique HabitProgress entries
+                                val uniqueProgressSet = mutableSetOf<String>()
 
                                 // Separate non-competitive and competitive habits
                                 val competitiveHabits = combinedHabits.filter { it.competitive && (it.friendEmail?.isNotEmpty() ?: false) }
                                 val nonCompetitiveHabits = combinedHabits.filter { !it.competitive }
 
-                                // Handle Non-Competitive Habits (Collaborative or single user)
+                                // Process non-competitive habits
                                 nonCompetitiveHabits.forEach { habit ->
                                     if (habit.collaborative) {
-                                        // Collaborative habit: progress shared
-                                        val totalUsers = 2 // Assuming two users collaborating
+                                        // Collaborative habit logic
+                                        val totalUsers = 2
                                         val totalTasksInWeek = habit.days.size * totalUsers
                                         var completedTasks = 0
 
@@ -187,7 +201,7 @@ class ProgressActivity : AppCompatActivity() {
                                             uniqueProgressSet.add(progressKey)
                                         }
                                     } else {
-                                        // Single-user habit: progress for the current user
+                                        // Single-user habit logic
                                         val userProgress = calculateUserProgress(
                                             habit,
                                             currentUserId,
@@ -211,12 +225,11 @@ class ProgressActivity : AppCompatActivity() {
                                     }
                                 }
 
-                                // Handle Competitive Habits (Separate progress for current user and friend)
+                                // Handle Competitive Habits
                                 if (competitiveHabits.isNotEmpty()) {
                                     var habitsProcessed = 0
                                     competitiveHabits.forEach { habit ->
                                         val friendEmail = habit.friendEmail!!
-                                        // Fetch friend's userId based on friendEmail
                                         firestore.collection("users")
                                             .whereEqualTo("email", friendEmail)
                                             .get()
@@ -226,7 +239,7 @@ class ProgressActivity : AppCompatActivity() {
                                                     val friendUserId = friendDoc.id
                                                     val friendUserEmail = friendDoc.getString("email") ?: friendEmail
 
-                                                    // Calculate progress for current user
+                                                    // Calculate progress for both users
                                                     val currentUserProgress = calculateUserProgress(
                                                         habit,
                                                         currentUserId,
@@ -234,7 +247,6 @@ class ProgressActivity : AppCompatActivity() {
                                                         currentWeekEnd
                                                     )
 
-                                                    // Calculate progress for friend user
                                                     val friendProgress = calculateUserProgress(
                                                         habit,
                                                         friendUserId,
@@ -243,7 +255,7 @@ class ProgressActivity : AppCompatActivity() {
                                                     )
 
                                                     // Add progress for current user
-                                                    val userProgressKey = "${habit.id}_$currentUserId"
+                                                    val userProgressKey = "${habit.habitName}_$currentUserId"
                                                     if (userProgressKey !in uniqueProgressSet) {
                                                         habitProgressList.add(
                                                             HabitProgress(
@@ -257,8 +269,8 @@ class ProgressActivity : AppCompatActivity() {
                                                         uniqueProgressSet.add(userProgressKey)
                                                     }
 
-                                                    // Add progress for friend user
-                                                    val friendProgressKey = "${habit.id}_$friendUserId"
+                                                    // Add progress for friend
+                                                    val friendProgressKey = "${habit.habitName}_$friendUserId"
                                                     if (friendProgressKey !in uniqueProgressSet) {
                                                         habitProgressList.add(
                                                             HabitProgress(
@@ -271,38 +283,22 @@ class ProgressActivity : AppCompatActivity() {
                                                         )
                                                         uniqueProgressSet.add(friendProgressKey)
                                                     }
-                                                } else {
-                                                    Log.e("ProgressActivity", "Friend with email $friendEmail not found.")
-                                                    Toast.makeText(
-                                                        this,
-                                                        "Friend with email $friendEmail not found.",
-                                                        Toast.LENGTH_SHORT
-                                                    ).show()
                                                 }
 
                                                 habitsProcessed++
                                                 if (habitsProcessed == competitiveHabits.size) {
-                                                    // All competitive habits processed, submit the list
                                                     progressAdapter.submitList(habitProgressList)
                                                 }
                                             }
                                             .addOnFailureListener { e ->
                                                 Log.e("ProgressActivity", "Error fetching friend userId: ", e)
-                                                Toast.makeText(
-                                                    this,
-                                                    "Error fetching friend data: ${e.message}",
-                                                    Toast.LENGTH_SHORT
-                                                ).show()
-
                                                 habitsProcessed++
                                                 if (habitsProcessed == competitiveHabits.size) {
-                                                    // Even if some fail, submit the list
                                                     progressAdapter.submitList(habitProgressList)
                                                 }
                                             }
                                     }
                                 } else {
-                                    // If no competitive habits, submit the list
                                     progressAdapter.submitList(habitProgressList)
                                 }
                             }
