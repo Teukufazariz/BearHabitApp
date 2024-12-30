@@ -5,6 +5,7 @@ import android.os.Bundle
 import android.view.View
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
+import com.example.bearhabitapp.Model.GroupChat
 import com.example.bearhabitapp.Model.Habit
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FieldValue
@@ -185,6 +186,38 @@ class AddHabitActivity : AppCompatActivity() {
         return days
     }
 
+    private fun createGroupChat(habitId: String, habitName: String, friendEmail: String?) {
+        val userEmail = FirebaseAuth.getInstance().currentUser?.email
+        if (userEmail == null) {
+            Toast.makeText(this, "User email not found", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val members = mutableListOf<String>()
+        members.add(userEmail)
+        friendEmail?.let {
+            if (it.isNotEmpty()) {
+                members.add(it)
+            }
+        }
+
+        val groupChat = GroupChat(
+            habitId = habitId,
+            habitName = habitName,
+            members = members
+        )
+
+        FirebaseFirestore.getInstance().collection("group_chats")
+            .document(habitId)
+            .set(groupChat)
+            .addOnSuccessListener {
+                Toast.makeText(this, "Group chat created successfully", Toast.LENGTH_SHORT).show()
+            }
+            .addOnFailureListener { exception ->
+                Toast.makeText(this, "Failed to create group chat: ${exception.message}", Toast.LENGTH_SHORT).show()
+            }
+    }
+
     private fun saveHabitToFirestore(
         habitName: String,
         iconColor: String,
@@ -212,6 +245,7 @@ class AddHabitActivity : AppCompatActivity() {
         firestore.collection("habits")
             .add(habit)
             .addOnSuccessListener { documentRef ->
+                createGroupChat(documentRef.id, habitName, friendEmail)
                 if (competitive && friendEmail != null) {
                     // Membuat habit untuk friend
                     firestore.collection("users")
