@@ -63,16 +63,19 @@ class HabitAdapter(
         val tvHabitName: TextView = itemView.findViewById(R.id.tvHabitName)
         val checkBoxDelete: CheckBox = itemView.findViewById(R.id.checkBoxDelete)
         val cardHabit: CardView = itemView.findViewById(R.id.cardHabit)
+        val tvRepeatCount: TextView = itemView.findViewById(R.id.tvRepeatCount)
+        val tvDays: TextView = itemView.findViewById(R.id.tvDays)
 
         fun bind(habit: Habit) {
             tvHabitName.text = habit.habitName
+            tvRepeatCount.text = "Repeat: ${habit.repeatCount} times"
+            tvDays.text = "Days: ${habit.days.joinToString(", ")}"
         }
     }
 
     private fun markHabitAsCompleted(holder: HabitViewHolder, position: Int) {
         val habit = habits[position]
         habit.id?.let { habitId ->
-            // Tambahkan currentUserId ini ke completedDates untuk tanggal ini menggunakan arrayUnion
             val updates = hashMapOf<String, Any>(
                 "completedDates.$currentDate" to FieldValue.arrayUnion(currentUserId)
             )
@@ -81,7 +84,7 @@ class HabitAdapter(
                 .document(habitId)
                 .update(updates)
                 .addOnSuccessListener {
-                    // Update lokal data
+                    // Update local data
                     if (habit.completedDates[currentDate] == null) {
                         habit.completedDates[currentDate] = mutableListOf()
                     }
@@ -95,7 +98,7 @@ class HabitAdapter(
                         Toast.LENGTH_SHORT
                     ).show()
 
-                    // Hapus habit dari daftar jika pengguna saat ini telah menyelesaikannya
+                    // Remove habit from list if completed
                     if (habit.completedDates[currentDate]?.contains(currentUserId) == true) {
                         habits.removeAt(position)
                         notifyItemRemoved(position)
@@ -105,7 +108,7 @@ class HabitAdapter(
                     }
                 }
                 .addOnFailureListener { e ->
-                    // Kembalikan checkbox ke status sebelumnya jika gagal
+                    // Revert checkbox state on failure
                     holder.checkBoxDelete.isChecked = false
                     Toast.makeText(
                         holder.itemView.context,
@@ -116,5 +119,5 @@ class HabitAdapter(
         }
     }
 
-    // Tidak perlu implementasi filterCompletedHabits karena filtering dilakukan saat memuat data di HomePageActivity
+    // Additional methods if any...
 }
