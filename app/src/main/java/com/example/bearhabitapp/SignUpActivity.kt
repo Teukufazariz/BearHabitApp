@@ -11,6 +11,7 @@ import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import com.bumptech.glide.Glide
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.storage.FirebaseStorage
@@ -122,7 +123,10 @@ class SignUpActivity : AppCompatActivity() {
         if (requestCode == 100 && resultCode == Activity.RESULT_OK && data != null) {
             imageUri = data.data
             val ivProfilePicture = findViewById<ImageView>(R.id.ivProfilePicture)
-            ivProfilePicture.setImageURI(imageUri)
+            Glide.with(this)
+                .load(imageUri)
+                .circleCrop()
+                .into(ivProfilePicture)
         }
     }
 }

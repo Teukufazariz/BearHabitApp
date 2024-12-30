@@ -147,7 +147,10 @@ class ProfileActivity : AppCompatActivity() {
                     tvEmail.text = document.getString("email") ?: "N/A"
                     val profilePicture = document.getString("profilePicture")
                     if (!profilePicture.isNullOrEmpty()) {
-                        Glide.with(this).load(profilePicture).into(ivProfilePicture)
+                        Glide.with(this)
+                            .load(profilePicture)
+                            .circleCrop()
+                            .into(ivProfilePicture)
                     } else {
                         Toast.makeText(this, "Profile picture not found", Toast.LENGTH_SHORT).show()
                     }

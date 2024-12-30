@@ -306,7 +306,10 @@ class HomePageActivity : AppCompatActivity() {
             .addOnSuccessListener { document ->
                 val profilePicture = document.getString("profilePicture")
                 if (!profilePicture.isNullOrEmpty()) {
-                    Glide.with(this).load(profilePicture).into(profileIcon) // Assuming 'profileIcon' is the ImageView
+                    Glide.with(this)
+                        .load(profilePicture)
+                        .circleCrop()
+                        .into(profileIcon) // Assuming 'profileIcon' is the ImageView
                 } else {
                     Toast.makeText(this, "Profile picture not found", Toast.LENGTH_SHORT).show()
                 }

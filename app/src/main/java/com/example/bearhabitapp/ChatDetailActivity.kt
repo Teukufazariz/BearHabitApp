@@ -130,6 +130,10 @@ class ChatDetailActivity : AppCompatActivity() {
         if (requestCode == REQUEST_IMAGE_CAPTURE && resultCode == RESULT_OK) {
             val imageBitmap = data?.extras?.get("data") as Bitmap
             val filePath = saveBitmapToFile(imageBitmap)
+//            Glide.with(this)
+//                .load(filePath)
+//                .circleCrop()
+//                .into(ivProfilePicture) // Ganti dengan ID ImageView yang sesuai
             uploadImageToFirebaseStorage(filePath)
         }
     }
