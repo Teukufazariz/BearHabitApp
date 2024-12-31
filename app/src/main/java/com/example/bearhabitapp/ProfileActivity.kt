@@ -14,6 +14,7 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.bumptech.glide.Glide
+import com.example.bearhabitapp.onboarding.OnboardingActivity
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.storage.FirebaseStorage
@@ -254,12 +255,15 @@ class ProfileActivity : AppCompatActivity() {
         val auth = FirebaseAuth.getInstance()
         auth.signOut()
 
-        // Hapus data user dari SharedPreferences
+        // Hapus data pengguna dari SharedPreferences
         val sharedPreferences = getSharedPreferences("User Prefs", MODE_PRIVATE)
         sharedPreferences.edit().clear().apply()
 
-        // Kembali ke halaman login
-        startActivity(Intent(this, LoginActivity::class.java))
+        // Arahkan pengguna ke OnboardingActivity setelah logout
+        val intent = Intent(this, OnboardingActivity::class.java)
+        // Pastikan untuk membersihkan stack aktivitas agar pengguna tidak dapat kembali ke ProfileActivity
+        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+        startActivity(intent)
         finish()
     }
 }
