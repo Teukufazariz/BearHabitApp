@@ -1,0 +1,225 @@
+<ScrollView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="fill_parent"
+    android:layout_height="fill_parent">
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:padding="10dp"
+        android:background="@color/white"
+        tools:context=".AddHabitActivity">
+
+        <!-- Back Button -->
+        <ImageView
+            android:id="@+id/btnBack"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:src="@drawable/ic_close"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            android:layout_marginTop="6dp" />
+
+        <TextView
+            android:id="@+id/tvAddTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:padding="8dp"
+            android:text="Add New Habit"
+            android:textColor="#8985E9"
+            android:textSize="24sp"
+            android:textStyle="bold"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <!-- Habit Name EditText -->
+        <EditText
+            android:id="@+id/etHabitName"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:hint="Habit name"
+            android:layout_marginTop="52dp"
+            app:layout_constraintTop_toBottomOf="@id/tvAddTitle"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"/>
+
+        <!-- Color Icon ImageView (Replaced Spinner) -->
+        <LinearLayout
+            android:id="@+id/colorPickerLayout"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginTop="16dp"
+            app:layout_constraintTop_toBottomOf="@id/etHabitName"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            android:gravity="center_horizontal">
+
+            <ImageView
+                android:id="@+id/ivRed"
+                android:layout_width="50dp"
+                android:layout_height="50dp"
+                android:layout_margin="8dp"
+                android:background="@drawable/circle_red"
+                android:clickable="true"
+                android:focusable="true" />
+
+            <ImageView
+                android:id="@+id/ivYellow"
+                android:layout_width="50dp"
+                android:layout_height="50dp"
+                android:layout_margin="8dp"
+                android:background="@drawable/circle_yellow"
+                android:clickable="true"
+                android:focusable="true" />
+
+            <ImageView
+                android:id="@+id/ivGreen"
+                android:layout_width="50dp"
+                android:layout_height="50dp"
+                android:layout_margin="8dp"
+                android:background="@drawable/circle_green"
+                android:clickable="true"
+                android:focusable="true" />
+
+            <ImageView
+                android:id="@+id/ivBlue"
+                android:layout_width="50dp"
+                android:layout_height="50dp"
+                android:layout_margin="8dp"
+                android:background="@drawable/circle_blue"
+                android:clickable="true"
+                android:focusable="true" />
+
+            <ImageView
+                android:id="@+id/ivPurple"
+                android:layout_width="50dp"
+                android:layout_height="50dp"
+                android:layout_margin="8dp"
+                android:background="@drawable/circle_purple"
+                android:clickable="true"
+                android:focusable="true" />
+        </LinearLayout>
+
+
+        <!-- Repeat Count EditText -->
+        <EditText
+            android:id="@+id/etRepeatCount"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:hint="Repeat count"
+            android:inputType="number"
+            android:layout_marginTop="16dp"
+            app:layout_constraintTop_toBottomOf="@id/colorPickerLayout"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"/>
+
+        <!-- Days of the week checkboxes -->
+        <CheckBox
+            android:id="@+id/cbMonday"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Monday"
+            android:layout_marginTop="16dp"
+            app:layout_constraintTop_toBottomOf="@id/etRepeatCount"
+            app:layout_constraintStart_toStartOf="parent"/>
+
+        <CheckBox
+            android:id="@+id/cbTuesday"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Tuesday"
+            app:layout_constraintTop_toBottomOf="@id/cbMonday"
+            app:layout_constraintStart_toStartOf="parent"/>
+
+        <CheckBox
+            android:id="@+id/cbWednesday"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Wednesday"
+            app:layout_constraintTop_toBottomOf="@id/cbTuesday"
+            app:layout_constraintStart_toStartOf="parent"/>
+
+        <CheckBox
+            android:id="@+id/cbThursday"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Thursday"
+            app:layout_constraintTop_toBottomOf="@id/cbWednesday"
+            app:layout_constraintStart_toStartOf="parent"/>
+
+        <CheckBox
+            android:id="@+id/cbFriday"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Friday"
+            app:layout_constraintTop_toBottomOf="@id/cbThursday"
+            app:layout_constraintStart_toStartOf="parent"/>
+
+        <CheckBox
+            android:id="@+id/cbSaturday"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Saturday"
+            app:layout_constraintTop_toBottomOf="@id/cbFriday"
+            app:layout_constraintStart_toStartOf="parent"/>
+
+        <CheckBox
+            android:id="@+id/cbSunday"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Sunday"
+            app:layout_constraintTop_toBottomOf="@id/cbSaturday"
+            app:layout_constraintStart_toStartOf="parent"/>
+
+        <!-- Friend's Email EditText -->
+        <EditText
+            android:id="@+id/etFriendEmail"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:hint="Friend's email"
+            android:layout_marginTop="16dp"
+            app:layout_constraintTop_toBottomOf="@id/cbSunday"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"/>
+
+        <!-- RadioGroup for Habit Type -->
+        <RadioGroup
+            android:id="@+id/rbGroup"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:layout_constraintTop_toBottomOf="@id/etFriendEmail"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent">
+
+            <RadioButton
+                android:id="@+id/rbCollaborative"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Collaborative" />
+
+            <RadioButton
+                android:id="@+id/rbCompetitive"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Competitive" />
+        </RadioGroup>
+
+        <!-- Add Habit Button -->
+        <Button
+            android:id="@+id/btnAddHabit"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="32dp"
+            android:backgroundTint="#8985E9"
+            android:text="Add habit"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/rbGroup" />
+    </androidx.constraintlayout.widget.ConstraintLayout>
+</ScrollView>
