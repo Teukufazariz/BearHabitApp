@@ -3,12 +3,16 @@ package com.example.bearhabitapp.Adapter
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.example.bearhabitapp.Model.GroupChat
 import com.example.bearhabitapp.R
 
-class GroupChatAdapter(private val onGroupChatClick: (GroupChat) -> Unit) :
+class GroupChatAdapter(
+    private val onGroupChatClick: (GroupChat) -> Unit,
+    private val onDeleteClick: (GroupChat) -> Unit
+) :
     RecyclerView.Adapter<GroupChatAdapter.GroupChatViewHolder>() {
 
     private val groupChats = mutableListOf<GroupChat>()
@@ -26,7 +30,7 @@ class GroupChatAdapter(private val onGroupChatClick: (GroupChat) -> Unit) :
 
     override fun onBindViewHolder(holder: GroupChatViewHolder, position: Int) {
         val groupChat = groupChats[position]
-        holder.bind(groupChat)
+        holder.bind(groupChat, onDeleteClick)
         holder.itemView.setOnClickListener { onGroupChatClick(groupChat) }
     }
 
@@ -34,12 +38,16 @@ class GroupChatAdapter(private val onGroupChatClick: (GroupChat) -> Unit) :
 
     class GroupChatViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         private val tvGroupName: TextView = itemView.findViewById(R.id.tvGroupName)
-        private val tvGroupMembers: TextView = itemView.findViewById(R.id.tvGroupMembers) // Tambahkan reference ke TextView untuk anggota
+        private val tvGroupMembers: TextView = itemView.findViewById(R.id.tvGroupMembers)
+        private val ivDelete: ImageView = itemView.findViewById(R.id.ivDelete) // Add reference to delete button
 
-        fun bind(groupChat: GroupChat) {
-            tvGroupName.text = groupChat.habitName // Tampilkan nama habit
-            // Tampilkan daftar anggota sebagai string, misalnya email mereka
+        fun bind(groupChat: GroupChat, onDeleteClick: (GroupChat) -> Unit) {
+            tvGroupName.text = groupChat.habitName
             tvGroupMembers.text = "Members: ${groupChat.members.joinToString(", ")}"
+
+            ivDelete.setOnClickListener {
+                onDeleteClick(groupChat)
+            }
         }
     }
 

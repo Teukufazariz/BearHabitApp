@@ -35,6 +35,10 @@
             android:name=".ChatActivity"
             android:exported="false" />
         <activity
+            android:name=".ChatDetailActivity"
+            android:exported="false">
+        </activity>
+        <activity
             android:name=".AddHabitActivity"
             android:exported="false" />
         <activity
