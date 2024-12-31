@@ -1,0 +1,217 @@
+private fun loadWeeklyProgress() {
+        val currentUserId = FirebaseAuth.getInstance().currentUser?.uid
+        val currentUserEmail = FirebaseAuth.getInstance().currentUser?.email
+        if (currentUserId == null || currentUserEmail == null) {
+            Toast.makeText(this, "User not authenticated", Toast.LENGTH_SHORT).show()
+            finish()
+            return
+        }
+
+        val currentWeekStart = getStartOfWeek()
+        val currentWeekEnd = getEndOfWeek()
+
+        firestore.collection("users").document(currentUserId).get()
+            .addOnSuccessListener { userDocument ->
+                val userEmail = userDocument.getString("email") ?: ""
+
+                // Fetch user's habits
+                firestore.collection("habits")
+                    .whereEqualTo("userId", currentUserId)
+                    .get()
+                    .addOnSuccessListener { userHabits ->
+                        // Fetch friend's habits (habits that user participates in competitively)
+                        firestore.collection("habits")
+                            .whereEqualTo("friendEmail", userEmail)
+                            .get()
+                            .addOnSuccessListener { friendHabits ->
+                                val combinedHabits = mutableListOf<Habit>()
+                                val habitIds = mutableSetOf<String>()
+                                val processedHabitNames = mutableSetOf<String>() // Untuk mengecek duplikasi nama habit
+
+                                // Add user's habits
+                                userHabits.forEach { document ->
+                                    val habit = document.toObject(Habit::class.java).apply {
+                                        id = document.id
+                                    }
+                                    if (habit.id != null && habit.id !in habitIds) {
+                                        // Untuk habit competitive, hanya tambahkan jika belum ada habit dengan nama yang sama
+                                        if (!habit.competitive || habit.habitName !in processedHabitNames) {
+                                            combinedHabits.add(habit)
+                                            habitIds.add(habit.id!!)
+                                            if (habit.competitive) {
+                                                processedHabitNames.add(habit.habitName)
+                                            }
+                                        }
+                                    }
+                                }
+
+                                // Add friend's habits if not already added
+                                friendHabits.forEach { document ->
+                                    val habit = document.toObject(Habit::class.java).apply {
+                                        id = document.id
+                                    }
+                                    if (habit.id != null && habit.id !in habitIds) {
+                                        // Untuk habit competitive, hanya tambahkan jika belum ada habit dengan nama yang sama
+                                        if (!habit.competitive || habit.habitName !in processedHabitNames) {
+                                            combinedHabits.add(habit)
+                                            habitIds.add(habit.id!!)
+                                            if (habit.competitive) {
+                                                processedHabitNames.add(habit.habitName)
+                                            }
+                                        }
+                                    }
+                                }
+
+                                // Sisa kode sama seperti sebelumnya
+                                val habitProgressList = mutableListOf<HabitProgress>()
+                                val uniqueProgressSet = mutableSetOf<String>()
+
+                                // Separate non-competitive and competitive habits
+                                val competitiveHabits = combinedHabits.filter { it.competitive && (it.friendEmail?.isNotEmpty() ?: false) }
+                                val nonCompetitiveHabits = combinedHabits.filter { !it.competitive }
+
+                                // Process non-competitive habits
+                                nonCompetitiveHabits.forEach { habit ->
+                                    if (habit.collaborative) {
+                                        // Collaborative habit logic
+                                        val totalUsers = 2
+                                        val totalTasksInWeek = habit.days.size * totalUsers
+                                        var completedTasks = 0
+
+                                        habit.completedDates.forEach { (date, users) ->
+                                            if (isDateInCurrentWeek(date, currentWeekStart, currentWeekEnd)) {
+                                                completedTasks += users.size
+                                            }
+                                        }
+
+                                        val progress = if (totalTasksInWeek > 0) {
+                                            (completedTasks.toFloat() / totalTasksInWeek.toFloat()) * 100
+                                        } else 0f
+
+                                        val progressKey = "${habit.id}_All"
+                                        if (progressKey !in uniqueProgressSet) {
+                                            habitProgressList.add(
+                                                HabitProgress(
+                                                    habitName = habit.habitName,
+                                                    userEmail = "All",
+                                                    progress = progress,
+                                                    totalTasks = totalTasksInWeek,
+                                                    completedTasks = completedTasks
+                                                )
+                                            )
+                                            uniqueProgressSet.add(progressKey)
+                                        }
+                                    } else {
+                                        // Single-user habit logic
+                                        val userProgress = calculateUserProgress(
+                                            habit,
+                                            currentUserId,
+                                            currentWeekStart,
+                                            currentWeekEnd
+                                        )
+
+                                        val progressKey = "${habit.id}_$currentUserId"
+                                        if (progressKey !in uniqueProgressSet) {
+                                            habitProgressList.add(
+                                                HabitProgress(
+                                                    habitName = habit.habitName,
+                                                    userEmail = currentUserEmail,
+                                                    progress = userProgress.second,
+                                                    totalTasks = userProgress.first,
+                                                    completedTasks = userProgress.third
+                                                )
+                                            )
+                                            uniqueProgressSet.add(progressKey)
+                                        }
+                                    }
+                                }
+
+                                // Handle Competitive Habits
+                                if (competitiveHabits.isNotEmpty()) {
+                                    var habitsProcessed = 0
+                                    competitiveHabits.forEach { habit ->
+                                        val friendEmail = habit.friendEmail!!
+                                        firestore.collection("users")
+                                            .whereEqualTo("email", friendEmail)
+                                            .get()
+                                            .addOnSuccessListener { friendDocuments ->
+                                                if (!friendDocuments.isEmpty) {
+                                                    val friendDoc = friendDocuments.documents[0]
+                                                    val friendUserId = friendDoc.id
+                                                    val friendUserEmail = friendDoc.getString("email") ?: friendEmail
+
+                                                    // Calculate progress for both users
+                                                    val currentUserProgress = calculateUserProgress(
+                                                        habit,
+                                                        currentUserId,
+                                                        currentWeekStart,
+                                                        currentWeekEnd
+                                                    )
+
+                                                    val friendProgress = calculateUserProgress(
+                                                        habit,
+                                                        friendUserId,
+                                                        currentWeekStart,
+                                                        currentWeekEnd
+                                                    )
+
+                                                    // Add progress for current user
+                                                    val userProgressKey = "${habit.habitName}_$currentUserId"
+                                                    if (userProgressKey !in uniqueProgressSet) {
+                                                        habitProgressList.add(
+                                                            HabitProgress(
+                                                                habitName = habit.habitName,
+                                                                userEmail = currentUserEmail,
+                                                                progress = currentUserProgress.second,
+                                                                totalTasks = currentUserProgress.first,
+                                                                completedTasks = currentUserProgress.third
+                                                            )
+                                                        )
+                                                        uniqueProgressSet.add(userProgressKey)
+                                                    }
+
+                                                    // Add progress for friend
+                                                    val friendProgressKey = "${habit.habitName}_$friendUserId"
+                                                    if (friendProgressKey !in uniqueProgressSet) {
+                                                        habitProgressList.add(
+                                                            HabitProgress(
+                                                                habitName = habit.habitName,
+                                                                userEmail = friendUserEmail,
+                                                                progress = friendProgress.second,
+                                                                totalTasks = friendProgress.first,
+                                                                completedTasks = friendProgress.third
+                                                            )
+                                                        )
+                                                        uniqueProgressSet.add(friendProgressKey)
+                                                    }
+                                                }
+
+                                                habitsProcessed++
+                                                if (habitsProcessed == competitiveHabits.size) {
+                                                    progressAdapter.submitList(habitProgressList)
+                                                }
+                                            }
+                                            .addOnFailureListener { e ->
+                                                Log.e("ProgressActivity", "Error fetching friend userId: ", e)
+                                                habitsProcessed++
+                                                if (habitsProcessed == competitiveHabits.size) {
+                                                    progressAdapter.submitList(habitProgressList)
+                                                }
+                                            }
+                                    }
+                                } else {
+                                    progressAdapter.submitList(habitProgressList)
+                                }
+                            }
+                            .addOnFailureListener { e ->
+                                Toast.makeText(this, "Failed to load friends' habits: ${e.message}", Toast.LENGTH_SHORT).show()
+                            }
+                    }
+                    .addOnFailureListener { e ->
+                        Toast.makeText(this, "Failed to load user's habits: ${e.message}", Toast.LENGTH_SHORT).show()
+                    }
+            }
+            .addOnFailureListener { e ->
+                Toast.makeText(this, "Failed to fetch user data: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+    }
